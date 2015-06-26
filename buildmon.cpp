@@ -40,11 +40,6 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(LOGFILE_PATH) + sizeof(KERNEL_LOGGER_NAME);
 	pSessionProperties = (EVENT_TRACE_PROPERTIES*)malloc(BufferSize);
-	if (NULL == pSessionProperties)
-	{
-		wprintf(L"Unable to allocate %d bytes for properties structure.\n", BufferSize);
-		goto cleanup;
-	}
 
 	// Set the session properties. You only append the log file name
 	// to the properties structure; the StartTrace function appends
@@ -68,35 +63,11 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (ERROR_SUCCESS != status)
 	{
-		if (ERROR_ALREADY_EXISTS == status)
-		{
-			wprintf(L"The NT Kernel Logger session is already in use.\n");
-		}
-		else
-		{
 			ErrorExit("EnableTrace");
-		}
-
-		goto cleanup;
 	}
 
 	wprintf(L"Press any key to end trace session ");
 	getchar();
-
-cleanup:
-
-	if (SessionHandle)
-	{
-		status = ControlTrace(SessionHandle, KERNEL_LOGGER_NAME, pSessionProperties, EVENT_TRACE_CONTROL_STOP);
-
-		if (ERROR_SUCCESS != status)
-		{
-			ErrorExit("ControlTrace");
-		}
-	}
-
-	if (pSessionProperties)
-		free(pSessionProperties);
 	return 0;
 }
 
