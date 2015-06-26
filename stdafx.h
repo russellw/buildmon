@@ -7,9 +7,9 @@
 
 #include "targetver.h"
 
+#define INITGUID  // Include this #define to use SystemTraceControlGuid in Evntrace.h.
+
 #include <stdio.h>
 #include <tchar.h>
-
-
-
-// TODO: reference additional headers your program requires here
+#include <windows.h>
+#include <evntrace.h>
