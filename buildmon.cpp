@@ -1,4 +1,10 @@
-#include "stdafx.h"
+#define INITGUID  // Include this #define to use SystemTraceControlGuid in Evntrace.h.
+
+#include <stdio.h>
+#include <tchar.h>
+#include <windows.h>
+#include <evntcons.h>
+#include <evntrace.h>
 
 void ErrorExit(char* lpszFunction)
 {
@@ -88,7 +94,6 @@ ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties, EVENT_TRACE_CONTROL_STOP
 	wprintf(L"Press any key to end trace session ");
 	getchar();
 
-	cleanup:
 ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties, EVENT_TRACE_CONTROL_STOP);
 	return 0;
 }
