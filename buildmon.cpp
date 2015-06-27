@@ -54,13 +54,16 @@ int _tmain(int argc, _TCHAR* argv[])
 	pSessionProperties->LogFileMode = EVENT_TRACE_FILE_MODE_CIRCULAR;
 	pSessionProperties->MaximumFileSize = 5;  // 5 MB
 	pSessionProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
+	strcpy((LPSTR)((char*)pSessionProperties + pSessionProperties->LoggerNameOffset),
+    KERNEL_LOGGER_NAME);
 	pSessionProperties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
 	strcpy(((char*)pSessionProperties + pSessionProperties->LogFileNameOffset), LOGFILE_PATH);
+
+ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties, EVENT_TRACE_CONTROL_STOP);
 
 	// Create the trace session.
 
 	status = StartTrace((PTRACEHANDLE)&SessionHandle, KERNEL_LOGGER_NAME, pSessionProperties);
-
 	if (ERROR_SUCCESS != status)
 	{
 			ErrorExit("EnableTrace");
@@ -68,6 +71,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	wprintf(L"Press any key to end trace session ");
 	getchar();
+
+	cleanup:
+ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties, EVENT_TRACE_CONTROL_STOP);
 	return 0;
 }
 
