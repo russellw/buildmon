@@ -12,4 +12,5 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
+#include <evntcons.h>
 #include <evntrace.h>

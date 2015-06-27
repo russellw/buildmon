@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-#define LOGFILE_PATH "log.etl"
-
 void ErrorExit(char* lpszFunction)
 {
 	// Retrieve the system error message for the last-error code
@@ -27,6 +25,26 @@ void ErrorExit(char* lpszFunction)
 	ExitProcess(dw);
 }
 
+static void WINAPI
+EventRecordCallback(EVENT_RECORD *EventRecord)
+{
+	EVENT_HEADER &Header = EventRecord->EventHeader;
+
+	UCHAR ProcessorNumber = EventRecord->BufferContext.ProcessorNumber;
+	ULONG ThreadID = Header.ThreadId;
+
+	// Process event here.
+}
+
+TRACEHANDLE ConsumerHandle;
+
+static DWORD WINAPI
+Win32TracingThread(LPVOID Parameter)
+{
+	ProcessTrace(&ConsumerHandle, 1, 0, 0);
+	return(0);
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	ULONG status = ERROR_SUCCESS;
@@ -34,40 +52,38 @@ int _tmain(int argc, _TCHAR* argv[])
 	EVENT_TRACE_PROPERTIES* pSessionProperties = NULL;
 	ULONG BufferSize = 0;
 
-	// Allocate memory for the session properties. The memory must
-	// be large enough to include the log file name and session name,
-	// which get appended to the end of the session properties structure.
-
-	BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(LOGFILE_PATH) + sizeof(KERNEL_LOGGER_NAME);
+	BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
 	pSessionProperties = (EVENT_TRACE_PROPERTIES*)malloc(BufferSize);
-
-	// Set the session properties. You only append the log file name
-	// to the properties structure; the StartTrace function appends
-	// the session name for you.
 
 	ZeroMemory(pSessionProperties, BufferSize);
 	pSessionProperties->Wnode.BufferSize = BufferSize;
 	pSessionProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-	pSessionProperties->Wnode.ClientContext = 1; //QPC clock resolution
+	pSessionProperties->Wnode.ClientContext = 3;
 	pSessionProperties->Wnode.Guid = SystemTraceControlGuid;
 	pSessionProperties->EnableFlags = EVENT_TRACE_FLAG_NETWORK_TCPIP;
-	pSessionProperties->LogFileMode = EVENT_TRACE_FILE_MODE_CIRCULAR;
-	pSessionProperties->MaximumFileSize = 5;  // 5 MB
+	pSessionProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
 	pSessionProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 	strcpy((LPSTR)((char*)pSessionProperties + pSessionProperties->LoggerNameOffset),
     KERNEL_LOGGER_NAME);
-	pSessionProperties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
-	strcpy(((char*)pSessionProperties + pSessionProperties->LogFileNameOffset), LOGFILE_PATH);
 
 ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties, EVENT_TRACE_CONTROL_STOP);
-
-	// Create the trace session.
 
 	status = StartTrace((PTRACEHANDLE)&SessionHandle, KERNEL_LOGGER_NAME, pSessionProperties);
 	if (ERROR_SUCCESS != status)
 	{
 			ErrorExit("EnableTrace");
 	}
+
+	EVENT_TRACE_LOGFILE LogFile = { 0 };
+	LogFile.LoggerName = KERNEL_LOGGER_NAME;
+	LogFile.ProcessTraceMode = (PROCESS_TRACE_MODE_REAL_TIME |
+		PROCESS_TRACE_MODE_EVENT_RECORD |
+		PROCESS_TRACE_MODE_RAW_TIMESTAMP);
+	LogFile.EventRecordCallback = EventRecordCallback;
+	ConsumerHandle = OpenTrace(&LogFile);
+	DWORD ThreadID;
+	HANDLE ThreadHandle = CreateThread(0, 0, Win32TracingThread, 0, 0, &ThreadID);
+	CloseHandle(ThreadHandle);
 
 	wprintf(L"Press any key to end trace session ");
 	getchar();
