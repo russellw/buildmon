@@ -1,7 +1,7 @@
-#define INITGUID  // Include this #define to use SystemTraceControlGuid in Evntrace.h.
+// Include this #define to use SystemTraceControlGuid in Evntrace.h.
+#define INITGUID 
 
 #include <stdio.h>
-#include <tchar.h>
 #include <windows.h>
 #include <evntcons.h>
 #include <evntrace.h>
@@ -51,7 +51,7 @@ Win32TracingThread(LPVOID Parameter)
 	return(0);
 }
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char** argv)
 {
 	ULONG status = ERROR_SUCCESS;
 	TRACEHANDLE SessionHandle = 0;
