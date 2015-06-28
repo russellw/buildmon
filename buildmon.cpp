@@ -9,12 +9,12 @@
 
 static void err(char *s) {
   // Retrieve the system error message for the last-error code
-  LPVOID msg;
+  char *msg;
   auto e = GetLastError();
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
                     FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL, e, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR)&msg, 0, NULL);
+                0, e, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (char *)&msg,
+                0, 0);
 
   // Display the error message and exit the process
   printf("%s failed with error %d: %s\n", s, e, msg);
@@ -32,9 +32,9 @@ static void WINAPI EventRecordCallback(EVENT_RECORD *EventRecord) {
 
 static TRACEHANDLE trace;
 
-static DWORD WINAPI processThread(LPVOID Parameter) {
+static DWORD WINAPI processThread(void *) {
   ProcessTrace(&trace, 1, 0, 0);
-  return (0);
+  return 0;
 }
 
 int main(int argc, char **argv) {
