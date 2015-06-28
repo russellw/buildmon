@@ -8,17 +8,14 @@
 
 void ErrorExit(char *lpszFunction) {
   // Retrieve the system error message for the last-error code
-
   LPVOID lpMsgBuf;
   DWORD dw = GetLastError();
-
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
                     FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                 (LPTSTR)&lpMsgBuf, 0, NULL);
 
   // Display the error message and exit the process
-
   printf("%s failed with error %d: %s\n", lpszFunction, dw, lpMsgBuf);
   ExitProcess(dw);
 }
@@ -56,8 +53,7 @@ int main(int argc, char **argv) {
   pSessionProperties->EnableFlags = EVENT_TRACE_FLAG_NETWORK_TCPIP;
   pSessionProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
   pSessionProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-  strcpy((LPSTR)((char *)pSessionProperties +
-                 pSessionProperties->LoggerNameOffset),
+  strcpy((char *)pSessionProperties + pSessionProperties->LoggerNameOffset,
          KERNEL_LOGGER_NAME);
 
   ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties,
@@ -65,9 +61,8 @@ int main(int argc, char **argv) {
 
   status = StartTrace((PTRACEHANDLE)&SessionHandle, KERNEL_LOGGER_NAME,
                       pSessionProperties);
-  if (ERROR_SUCCESS != status) {
-    ErrorExit("EnableTrace");
-  }
+  if (ERROR_SUCCESS != status)
+    ErrorExit("StartTrace");
 
   EVENT_TRACE_LOGFILE LogFile = {0};
   LogFile.LoggerName = KERNEL_LOGGER_NAME;
