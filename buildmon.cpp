@@ -7,10 +7,10 @@
 #include <evntrace.h>
 #include <stdio.h>
 
-void ErrorExit(char *s) {
+static void err(char *s) {
   // Retrieve the system error message for the last-error code
   LPVOID lpMsgBuf;
-  DWORD e = GetLastError();
+  auto e = GetLastError();
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
                     FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL, e, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
@@ -30,40 +30,36 @@ static void WINAPI EventRecordCallback(EVENT_RECORD *EventRecord) {
   // Process event here.
 }
 
-TRACEHANDLE ConsumerHandle;
+static TRACEHANDLE ConsumerHandle;
 
-static DWORD WINAPI Win32TracingThread(LPVOID Parameter) {
+static DWORD WINAPI processThread(LPVOID Parameter) {
   ProcessTrace(&ConsumerHandle, 1, 0, 0);
   return (0);
 }
 
 int main(int argc, char **argv) {
-  ULONG status = ERROR_SUCCESS;
   TRACEHANDLE SessionHandle = 0;
-  EVENT_TRACE_PROPERTIES *pSessionProperties = NULL;
-  ULONG BufferSize = 0;
 
-  BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
-  pSessionProperties = (EVENT_TRACE_PROPERTIES *)malloc(BufferSize);
+  auto BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
+  EVENT_TRACE_PROPERTIES *properties =
+      (EVENT_TRACE_PROPERTIES *)malloc(BufferSize);
 
-  ZeroMemory(pSessionProperties, BufferSize);
-  pSessionProperties->Wnode.BufferSize = BufferSize;
-  pSessionProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-  pSessionProperties->Wnode.ClientContext = 3;
-  pSessionProperties->Wnode.Guid = SystemTraceControlGuid;
-  pSessionProperties->EnableFlags = EVENT_TRACE_FLAG_NETWORK_TCPIP;
-  pSessionProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-  pSessionProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-  strcpy((char *)pSessionProperties + pSessionProperties->LoggerNameOffset,
-         KERNEL_LOGGER_NAME);
+  ZeroMemory(properties, BufferSize);
+  properties->Wnode.BufferSize = BufferSize;
+  properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
+  properties->Wnode.ClientContext = 3;
+  properties->Wnode.Guid = SystemTraceControlGuid;
+  properties->EnableFlags = EVENT_TRACE_FLAG_NETWORK_TCPIP;
+  properties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
+  properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
+  strcpy((char *)properties + properties->LoggerNameOffset, KERNEL_LOGGER_NAME);
 
-  ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties,
-               EVENT_TRACE_CONTROL_STOP);
+  ControlTrace(0, KERNEL_LOGGER_NAME, properties, EVENT_TRACE_CONTROL_STOP);
 
-  status = StartTrace((PTRACEHANDLE)&SessionHandle, KERNEL_LOGGER_NAME,
-                      pSessionProperties);
+  auto status =
+      StartTrace((PTRACEHANDLE)&SessionHandle, KERNEL_LOGGER_NAME, properties);
   if (ERROR_SUCCESS != status)
-    ErrorExit("StartTrace");
+    err("StartTrace");
 
   EVENT_TRACE_LOGFILE LogFile = {0};
   LogFile.LoggerName = KERNEL_LOGGER_NAME;
@@ -73,13 +69,12 @@ int main(int argc, char **argv) {
   LogFile.EventRecordCallback = EventRecordCallback;
   ConsumerHandle = OpenTrace(&LogFile);
   DWORD ThreadID;
-  HANDLE ThreadHandle = CreateThread(0, 0, Win32TracingThread, 0, 0, &ThreadID);
+  HANDLE ThreadHandle = CreateThread(0, 0, processThread, 0, 0, &ThreadID);
   CloseHandle(ThreadHandle);
 
   wprintf(L"Press any key to end trace session ");
   getchar();
 
-  ControlTrace(0, KERNEL_LOGGER_NAME, pSessionProperties,
-               EVENT_TRACE_CONTROL_STOP);
+  ControlTrace(0, KERNEL_LOGGER_NAME, properties, EVENT_TRACE_CONTROL_STOP);
   return 0;
 }
