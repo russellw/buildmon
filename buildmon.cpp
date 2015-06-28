@@ -7,30 +7,38 @@
 #include <evntrace.h>
 #include <stdio.h>
 
+static PEVENT_TRACE_PROPERTIES properties;
+static TRACEHANDLE trace;
+
+static void end(int status) {
+  if (trace)
+    ControlTrace(0, KERNEL_LOGGER_NAME, properties, EVENT_TRACE_CONTROL_STOP);
+  ExitProcess(status);
+}
+
 static void err(char *s) {
   // Retrieve the system error message for the last-error code
-  auto e = GetLastError();
+  auto error = GetLastError();
   char *msg;
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
                     FORMAT_MESSAGE_IGNORE_INSERTS,
-                0, e, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (char *)&msg,
-                0, 0);
+                0, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (char *)&msg, 0, 0);
 
   // Display the error message and exit the process
-  printf("%s failed with error %d: %s\n", s, e, msg);
-  ExitProcess(e);
+  printf("%s failed with error %d: %s\n", s, error, msg);
+  end(error);
 }
 
-static void WINAPI EventRecordCallback(PEVENT_RECORD EventRecord) {
-  EVENT_HEADER &Header = EventRecord->EventHeader;
+static void WINAPI EventRecordCallback(PEVENT_RECORD event) {
+  EVENT_HEADER &EventHeader = event->EventHeader;
+  puts("======");
 
-  UCHAR ProcessorNumber = EventRecord->BufferContext.ProcessorNumber;
-  ULONG ThreadID = Header.ThreadId;
+  UCHAR ProcessorNumber = event->BufferContext.ProcessorNumber;
+  ULONG ThreadID = event->EventHeader.ThreadId;
 
   // Process event here.
 }
-
-static TRACEHANDLE trace;
 
 static DWORD WINAPI processThread(void *) {
   ProcessTrace(&trace, 1, 0, 0);
@@ -39,7 +47,7 @@ static DWORD WINAPI processThread(void *) {
 
 int main(int argc, char **argv) {
   auto BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
-  auto properties = (PEVENT_TRACE_PROPERTIES)malloc(BufferSize);
+  properties = (PEVENT_TRACE_PROPERTIES)malloc(BufferSize);
 
   ZeroMemory(properties, BufferSize);
   properties->EnableFlags = EVENT_TRACE_FLAG_PROCESS;
@@ -69,6 +77,5 @@ int main(int argc, char **argv) {
   wprintf(L"Press any key to end trace session ");
   getchar();
 
-  ControlTrace(0, KERNEL_LOGGER_NAME, properties, EVENT_TRACE_CONTROL_STOP);
-  return 0;
+  end(0);
 }
