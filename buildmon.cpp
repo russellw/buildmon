@@ -1,10 +1,11 @@
 // Include this #define to use SystemTraceControlGuid in Evntrace.h.
 #define INITGUID
 
+#include <windows.h>
+
 #include <evntcons.h>
 #include <evntrace.h>
 #include <stdio.h>
-#include <windows.h>
 
 void ErrorExit(char *s) {
   // Retrieve the system error message for the last-error code
