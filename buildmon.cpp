@@ -21,7 +21,7 @@ static void err(char *s) {
   ExitProcess(e);
 }
 
-static void WINAPI EventRecordCallback(EVENT_RECORD *EventRecord) {
+static void WINAPI EventRecordCallback(PEVENT_RECORD EventRecord) {
   EVENT_HEADER &Header = EventRecord->EventHeader;
 
   UCHAR ProcessorNumber = EventRecord->BufferContext.ProcessorNumber;
@@ -39,10 +39,10 @@ static DWORD WINAPI processThread(void *) {
 
 int main(int argc, char **argv) {
   auto BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
-  auto properties = (EVENT_TRACE_PROPERTIES *)malloc(BufferSize);
+  auto properties = (PEVENT_TRACE_PROPERTIES)malloc(BufferSize);
 
   ZeroMemory(properties, BufferSize);
-  properties->EnableFlags = EVENT_TRACE_FLAG_NETWORK_TCPIP;
+  properties->EnableFlags = EVENT_TRACE_FLAG_PROCESS;
   properties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
   properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
   properties->Wnode.BufferSize = BufferSize;
@@ -53,9 +53,8 @@ int main(int argc, char **argv) {
 
   ControlTrace(0, KERNEL_LOGGER_NAME, properties, EVENT_TRACE_CONTROL_STOP);
 
-  auto status =
-      StartTrace((PTRACEHANDLE)&trace, KERNEL_LOGGER_NAME, properties);
-  if (ERROR_SUCCESS != status)
+  auto status = StartTrace(&trace, KERNEL_LOGGER_NAME, properties);
+  if (status != ERROR_SUCCESS)
     err("StartTrace");
 
   EVENT_TRACE_LOGFILE log = {0};
