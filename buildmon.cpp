@@ -1,23 +1,23 @@
 // Include this #define to use SystemTraceControlGuid in Evntrace.h.
 #define INITGUID
 
-#include <stdio.h>
-#include <windows.h>
 #include <evntcons.h>
 #include <evntrace.h>
+#include <stdio.h>
+#include <windows.h>
 
-void ErrorExit(char *lpszFunction) {
+void ErrorExit(char *s) {
   // Retrieve the system error message for the last-error code
   LPVOID lpMsgBuf;
-  DWORD dw = GetLastError();
+  DWORD e = GetLastError();
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
                     FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                NULL, e, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                 (LPTSTR)&lpMsgBuf, 0, NULL);
 
   // Display the error message and exit the process
-  printf("%s failed with error %d: %s\n", lpszFunction, dw, lpMsgBuf);
-  ExitProcess(dw);
+  printf("%s failed with error %d: %s\n", s, e, lpMsgBuf);
+  ExitProcess(e);
 }
 
 static void WINAPI EventRecordCallback(EVENT_RECORD *EventRecord) {
