@@ -3,6 +3,7 @@
 
 #include <windows.h>
 
+#include <conio.h>
 #include <stdio.h>
 #include <tdh.h>
 
@@ -18,12 +19,15 @@ struct Process_TypeGroup1 {
   // string CommandLine;
 };
 
+static FILE *file;
 static PEVENT_TRACE_PROPERTIES properties;
 static TRACEHANDLE trace;
 
 static void end(int status) {
   if (trace)
     ControlTrace(0, KERNEL_LOGGER_NAME, properties, EVENT_TRACE_CONTROL_STOP);
+  if (file)
+    fclose(file);
   ExitProcess(status);
 }
 
@@ -45,10 +49,11 @@ static void WINAPI EventRecordCallback(PEVENT_RECORD event) {
   if (event->EventHeader.EventDescriptor.Opcode != 1)
     return;
   auto p = (Process_TypeGroup1 *)event->UserData;
-  puts(p->ImageFileName);
   auto n = strlen(p->ImageFileName) + 1;
   auto CommandLine = (wchar_t *)(p->ImageFileName + n);
-  wprintf(L"%s\n", CommandLine);
+  for (auto s = CommandLine; *s; s++)
+    fputc(*s, file);
+  fputc('\n', file);
 }
 
 static DWORD WINAPI processThread(void *) {
@@ -83,10 +88,11 @@ int main(int argc, char **argv) {
       (PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD |
        PROCESS_TRACE_MODE_RAW_TIMESTAMP);
   trace = OpenTrace(&log);
+  file = fopen("a.bat", "wb");
   CreateThread(0, 0, processThread, 0, 0, 0);
 
-  wprintf(L"Press any key to end trace session ");
-  getchar();
+  puts("Press any key to exit");
+  getch();
 
   end(0);
 }
