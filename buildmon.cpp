@@ -3,9 +3,20 @@
 
 #include <windows.h>
 
-#include <evntcons.h>
-#include <evntrace.h>
 #include <stdio.h>
+#include <tdh.h>
+
+struct Process_TypeGroup1 {
+  int UniqueProcessKey;
+  int ProcessId;
+  int ParentId;
+  int SessionId;
+  int ExitStatus;
+  int DirectoryTableBase;
+  int UserSID[13];
+  char ImageFileName[1];
+  // string CommandLine;
+};
 
 static PEVENT_TRACE_PROPERTIES properties;
 static TRACEHANDLE trace;
@@ -31,13 +42,13 @@ static void err(char *s) {
 }
 
 static void WINAPI EventRecordCallback(PEVENT_RECORD event) {
-  EVENT_HEADER &EventHeader = event->EventHeader;
-  puts("======");
-
-  UCHAR ProcessorNumber = event->BufferContext.ProcessorNumber;
-  ULONG ThreadID = event->EventHeader.ThreadId;
-
-  // Process event here.
+  if (event->EventHeader.EventDescriptor.Opcode != 1)
+    return;
+  auto p = (Process_TypeGroup1 *)event->UserData;
+  puts(p->ImageFileName);
+  auto n = strlen(p->ImageFileName) + 1;
+  auto CommandLine = (wchar_t *)(p->ImageFileName + n);
+  wprintf(L"%s\n", CommandLine);
 }
 
 static DWORD WINAPI processThread(void *) {
