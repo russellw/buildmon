@@ -45,14 +45,25 @@ static void err(char *s) {
   end(error);
 }
 
+template <class C> static void output(C *s) {
+  fputc('"', file);
+  for (; *s; s++) {
+    if (*s == '"')
+      fputc('"', file);
+    fputc(*s, file);
+  }
+  fputc('"', file);
+}
+
 static void WINAPI EventRecordCallback(PEVENT_RECORD event) {
   if (event->EventHeader.EventDescriptor.Opcode != 1)
     return;
   auto p = (Process_TypeGroup1 *)event->UserData;
   auto n = strlen(p->ImageFileName) + 1;
   auto CommandLine = (wchar_t *)(p->ImageFileName + n);
-  for (auto s = CommandLine; *s; s++)
-    fputc(*s, file);
+  output(p->ImageFileName);
+  fputc(',', file);
+  output(CommandLine);
   fputc('\n', file);
 }
 
@@ -88,7 +99,7 @@ int main(int argc, char **argv) {
       (PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD |
        PROCESS_TRACE_MODE_RAW_TIMESTAMP);
   trace = OpenTrace(&log);
-  file = fopen("a.bat", "wb");
+  file = fopen("log.csv", "wb");
   CreateThread(0, 0, processThread, 0, 0, 0);
 
   puts("Press any key to exit");
