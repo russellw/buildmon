@@ -7,6 +7,14 @@
 #include <stdio.h>
 #include <tdh.h>
 
+static void help() {
+  printf("Usage: buildmon [options]\n"
+         "\n"
+         "-h  Show help\n"
+         "-v  Show version\n");
+  exit(0);
+}
+
 struct Process_TypeGroup1 {
   int UniqueProcessKey;
   int ProcessId;
@@ -73,6 +81,26 @@ static DWORD WINAPI processThread(void *) {
 }
 
 int main(int argc, char **argv) {
+  for (auto i = argv + 1; i != argv + argc; ++i) {
+    auto s = *i;
+    if (*s != '-')
+      help();
+    while (*s == '-')
+      ++s;
+    switch (*s) {
+    case '?':
+    case 'h':
+      help();
+    case 'V':
+    case 'v':
+      puts("buildmon version 1");
+      return 0;
+    default:
+      printf("%s: unknown option\n", *i);
+      return 1;
+    }
+  }
+
   auto BufferSize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(KERNEL_LOGGER_NAME);
   properties = (PEVENT_TRACE_PROPERTIES)malloc(BufferSize);
 
